@@ -15,6 +15,8 @@ Authors
 =========
 Syed Ibrahim Ghaznavi (ighaznavi@itu.edu.pk)
 
-Usman Shahid (usman.shaahid@gmail.com) 
+Usman Shahid (usman.shaahid@gmail.com)
+
+Abdullah Hamid (abdullah.0153@gmail.com)
 
 Shan Randhawa (randhawaay@gmail.com)
