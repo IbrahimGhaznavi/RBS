@@ -13,6 +13,8 @@ It contains freeswitch(dialplan, chatplan) extension code and python helper scri
 
 Authors
 =========
-Syed Ibrahim Ghaznavi (ighaznavi@itu.edu.pk) 
+Syed Ibrahim Ghaznavi (ighaznavi@itu.edu.pk)
+
 Usman Shahid (usman.shaahid@gmail.com) 
+
 Shan Randhawa (randhawaay@gmail.com)
