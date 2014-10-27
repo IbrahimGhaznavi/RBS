@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<include>
+  <context name="default">
+
+ <!-- set all the openbts variables -->
+    <extension name="openbts" continue="true">
+      <condition field="to_user" expression="^smsc$">
+	<!-- first, parse SMS -->
+	<action inline="true" application="python" data="VBTS_Parse_SMS"/>
+ 	<!-- second, look up sender -->
+ 	<!-- freeswitch eats 's, switch them up here -->
+ 	<action inline="true" application="python" data='VBTS_DB_Get callerid|name|${from_user}'/>
+ 	<!-- result in _openbts_ret -->
+ 	<action inline="true" application="set" data="openbts_callerid=${_vbts_ret}"/>
+	
+      </condition>
+    </extension>
+
+	
+
+
+    <!--<extension name="demo">
+      <condition field="to" expression="^(.*)$">
+	<action application="python" data="test ${_body}"/>-->
+        <!--	<action application="lua" data="test.lua"/> -->
+	<!--<action application="reply" data="Hello, you said: ${_body}"/>-->
+     <!-- </condition>
+    </extension>-->
+
+	<extension name="calling_extensions" continue="true">
+		<!-- if sms is sent to 8000 -->
+		<condition field="vbts_tp_dest_address" expression="^8000$" />
+		<!-- if message body contains 'doctor', create a new leg and hit extension 7777 in dial plan<default context> and caller id is 8000-->
+		<condition field="vbts_text" expression="(?i)doctor" break = "never">
+			<action application="set" data="api_result=${bgapi(originate sofia/internal/${from}:${from_sip_port} 7777 xml default ${from} 8000 60)}"/>
+		</condition>
+		<!-- if message body contains 'police', create a new leg and hit extension 7700 in dial plan<default context> and caller id is 8000-->
+		<condition field="vbts_text" expression="(?i)police" break = "never">
+			<action application="set" data="api_result=${bgapi(originate sofia/internal/${from}:${from_sip_port} 7700 xml default ${from} 8000 60)}"/>
+		</condition>
+		<!-- if message body contains 'rescue', create a new leg and hit extension 7711 in dial plan<default context> and caller id is 8000-->
+		<condition field="vbts_text" expression="(?i)rescue" break = "never">
+			<action application="set" data="api_result=${bgapi(originate sofia/internal/${from}:${from_sip_port} 7711 xml default ${from} 8000 60)}"/>
+		</condition>
+		<!-- if message body contains 'fire brigade', create a new leg and hit extension 7722 in dial plan<default context> and caller id is 8000-->
+		<condition field="vbts_text" expression="(?i)fire ?brigade">
+			<action application="set" data="api_result=${bgapi(originate sofia/internal/${from}:${from_sip_port} 7722 xml default ${from} 8000 60)}"/>
+		</condition>
+	</extension>
+
+
+	<extension name = "search_extension" continue = "true">
+		<condition field="vbts_tp_dest_address" expression="^7000$"/>
+		<condition field="vbts_text" expression="(?i)search">
+			<action application = "set" data = "openbts_callerid=${python(VBTS_DB_Get callerid|name|${from_user})}"/>
+			<action application="set" data="response_text=${python(VBTS_Search ${vbts_text})}"/>
+			<action application="python" data="VBTS_Send_SMS ${openbts_callerid}|7000|${response_text}"/>
+		</condition>
+	</extension>
+
+
+    <extension name="callbacks">
+      <condition field="vbts_tp_dest_address" expression="^919(\d)$">
+	<!-- bgapi lets us finish this without waiting for the originate -->
+	<!-- the space between the args and the dest is important, for some reason -->
+	<action application="set" data="api_result=${bgapi(originate {origination_caller_id_number=${vbts_tp_dest_address}}sofia/internal/${from}:${from_sip_port})}"/>
+      </condition>
+    </extension>
+
+
+<!-- register a user in the subscriber registry -->
+    <extension name="registration">
+      <condition field="vbts_tp_dest_address" expression="^101$"/>
+      <!-- is it a number? -->
+      <condition field="vbts_text" expression="^\d{7,10}$">
+	
+	<action application="python" data="VBTS_New_User"/>
+	<action application="set" data="response_text=${_vbts_ret}"/>
+	<!-- lookup new number -->
+	<action application="python" data='VBTS_DB callerid|name|${from_user}'/>
+	<!-- text back the return value -->
+	<action application="python" data="VBTS_Send_SMS ${_vbts_ret}|101|${response_text}"/>
+
+      </condition>
+    </extension>
+    <!-- send any other messages onto smqueue -->
+    <!-- reencode for now... though I'll probably write a "forward" script -->
+    
+    <extension name="forward">
+      <condition field="vbts_tp_dest_address" expression="^(.*)$">
+	<action application="python" data="VBTS_Send_SMS ${vbts_tp_dest_address}|${from_user}|${vbts_text}"/>
+      </condition>
+    </extension>
+ 
+  </context>
+</include>

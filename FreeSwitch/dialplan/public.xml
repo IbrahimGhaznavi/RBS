@@ -1,0 +1,163 @@
+<!--
+    NOTICE:
+
+    This context is usually accessed via the external sip profile listening on port 5080.
+    
+    It is recommended to have separate inbound and outbound contexts.  Not only for security
+    but clearing up why you would need to do such a thing.  You don't want outside un-authenticated
+    callers hitting your default context which allows dialing calls thru your providers and results 
+    in Toll Fraud.
+-->
+
+<!-- http://wiki.freeswitch.org/wiki/Dialplan_XML -->
+<include>
+  <context name="public">
+
+    <extension name="unloop">
+      <condition field="${unroll_loops}" expression="^true$"/>
+      <condition field="${sip_looped_call}" expression="^true$">
+	<action application="deflect" data="${destination_number}"/>
+      </condition>
+    </extension>
+    <!--
+	Tag anything pass thru here as an outside_call so you can make sure not
+	to create any routing loops based on the conditions that it came from 
+	the outside of the switch.  
+    -->
+    <extension name="outside_call" continue="true">
+      <condition>
+	<action application="set" data="outside_call=true"/>
+	<action application="export" data="RFC2822_DATE=${strftime(%a, %d %b %Y %T %z)}"/>
+      </condition>
+    </extension>
+
+    <extension name="call_debug" continue="true">
+      <condition field="${call_debug}" expression="^true$" break="never">
+	<action application="info"/>
+      </condition>
+    </extension>
+
+		
+	<extension name ="doctor_extension" continue="true">
+		<condition field = "${destination_number}" expression="^7777$">
+		    <action application="log" data="${caller_id_number}"/>
+		    <action application="set" data='effective_caller_id_number=${python(VBTS_DB_Get callerid|name|${caller_id_number})}'/>
+			<action application="set" data="hangup_after_bridge=true"/>
+			<action application="set" data="continue_on_fail=true"/>
+			<action application="answer"/>
+			<action application="sleep" data="1500"/>
+			<action application="playback" data="ivr/ivr-hold_connect_call.wav"/>
+			<action application="bridge" data="${python(VBTS_GetDialStrings occupation|doctor)}"/>
+		</condition>
+	</extension>
+
+	<extension name ="police_extension" continue="true">
+		<condition field = "${destination_number}" expression="^7700$">
+		    <action application="log" data="${caller_id_number}"/>
+		    <action application="set" data='effective_caller_id_number=${python(VBTS_DB_Get callerid|name|${caller_id_number})}'/>
+			<action application="set" data="hangup_after_bridge=true"/>
+			<action application="set" data="continue_on_fail=true"/>
+			<action application="answer"/>
+			<action application="sleep" data="1500"/>
+			<action application="playback" data="ivr/ivr-hold_connect_call.wav"/>
+			<action application="bridge" data="${python(VBTS_GetDialStrings occupation|police)}"/>
+		</condition>
+	</extension>
+
+	<extension name ="rescue_extension" continue="true">
+		<condition field = "${destination_number}" expression="^7711$">
+		    <action application="log" data="${caller_id_number}"/>
+		    <action application="set" data='effective_caller_id_number=${python(VBTS_DB_Get callerid|name|${caller_id_number})}'/>
+			<action application="set" data="hangup_after_bridge=true"/>
+			<action application="set" data="continue_on_fail=true"/>
+			<action application="answer"/>
+			<action application="sleep" data="1500"/>
+			<action application="playback" data="ivr/ivr-hold_connect_call.wav"/>
+			<action application="bridge" data="${python(VBTS_GetDialStrings occupation|rescue)}"/>
+		</condition>
+	</extension>
+
+
+	<extension name ="fireBrigade_extension" continue="true">
+		<condition field = "${destination_number}" expression="^7722$">
+		    <action application="log" data="${caller_id_number}"/>
+		    <action application="set" data='effective_caller_id_number=${python(VBTS_DB_Get callerid|name|${caller_id_number})}'/>
+			<action application="set" data="hangup_after_bridge=true"/>
+			<action application="set" data="continue_on_fail=true"/>
+			<action application="answer"/>
+			<action application="sleep" data="1500"/>
+			<action application="playback" data="ivr/ivr-hold_connect_call.wav"/>
+			<action application="bridge" data="${python(VBTS_GetDialStrings occupation|fire Brigade)}"/>
+		</condition>
+	</extension>
+
+	<extension name ="emergency_report" continue="true">
+		<condition field = "${destination_number}" expression="^1122$">
+				<action application="sleep" data="1000"/>
+				<action application="answer"/>
+				<action application="playback" data="voicemail/vm-record_message.wav"/>
+
+		        <action application="set" data="RECORD_TITLE=Recording ${destination_number} ${caller_id_number} ${strftime(%Y-%m-%d %H:%M)}"/>
+				<action application="set" data="RECORD_COPYRIGHT=(c) 1980 Factory Records, Inc."/>
+				<action application="set" data="RECORD_SOFTWARE=FreeSWITCH"/>
+				<action application="set" data="RECORD_ARTIST=usman"/>
+				<action application="set" data="RECORD_COMMENT=Emergency recording"/>
+				<action application="set" data="RECORD_DATE=${strftime(%Y-%m-%d %H:%M)}"/>
+				<action application="set" data="RECORD_STEREO=true"/>
+
+				<!--default terminator is *. Keyword 'none' disables on-key termination /-->
+				<!--following line will set # as recording session terminator /-->
+				<action application="set" data="playback_terminators=#"/> 
+				<action application="record" data="$${base_dir}/recordings/${strftime(%Y-%m-%d-%H-%M-%S)}_${destination_number}_${caller_id_number}.wav 180"/>
+		</condition>
+	</extension>
+
+	<extension name="local_call">
+	  <!-- openbts_db_loc set in vars.xml -->
+	  <condition field='${python(VBTS_DB_Get name|callerid|${destination_number})}' expression="IMSI\d{15}"/>
+	  <condition field='${python(VBTS_DB_Get callerid|name|${username})}' expression="\d{7,11}">
+		<action application="set" data='target=${python(VBTS_DB_Get name|callerid|${destination_number})}' />
+		<action application="set" data='port=${python(VBTS_DB_Get port|callerid|${destination_number})}' />
+		<action application="set" data='host=${python(VBTS_DB_Get ipaddr|callerid|${destination_number})}' />
+		<action application="set" data='effective_caller_id_number=${python(VBTS_DB_Get callerid|name|${caller_id_number})}'/>
+		<action application="bridge" data="sofia/internal/${target}@${host}:${port}"/>
+	  </condition>
+
+	</extension>
+
+    <extension name="public_extensions"><!--| IMSI410071190004419 | IMSI001011990032551-->
+      <condition field="destination_number" expression="^(10[01][0-9])$">
+			<action application="transfer" data="$1 XML default"/>
+      </condition>
+   
+ </extension>
+    
+
+
+
+
+
+
+<!--
+	You can place files in the public directory to get included.
+    -->
+    <X-PRE-PROCESS cmd="include" data="public/*.xml"/>
+    <!--
+	If you have made it this far lets challenge the caller and if they authenticate
+	lets try what they dialed in the default context. (commented out by default)
+    -->
+    <!--
+    <extension name="check_auth" continue="true">
+      <condition field="${sip_authorized}" expression="^true$" break="never">
+	<anti-action application="respond" data="407"/>
+      </condition>
+    </extension>
+    
+    <extension name="transfer_to_default">
+      <condition>
+	<action application="transfer" data="${destination_number} XML default"/>
+      </condition>
+    </extension>
+    -->
+  </context>
+</include>
