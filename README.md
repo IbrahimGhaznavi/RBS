@@ -15,6 +15,13 @@ It contains freeswitch(dialplan, chatplan) extension code and python helper scri
 
 -Emergency short-codes for doctors, police, rescue workers, fire fighters. 
 
+Procedure: 
+1)You should first install libvbts from https://github.com/kheimerl/libvbts/tree/master/libvbts
+
+2)All python helper scripts should be pasted alongside libvbts scripts
+
+3)Dialplan and chatplan extensions should be added to your local freeswitch installation.
+
 Authors
 =========
 Syed Ibrahim Ghaznavi (ighaznavi@itu.edu.pk)
