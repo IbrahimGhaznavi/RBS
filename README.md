@@ -26,7 +26,7 @@ Procedure
 
 Authors
 =========
-Syed Ibrahim Ghaznavi (ighaznavi@itu.edu.pk)
+Syed Ibrahim Ghaznavi (ibrahimghaznavi@gmail.com or s.ghaznavi16@imperial.ac.uk)
 
 Usman Shahid (usman.shaahid@gmail.com)
 
